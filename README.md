@@ -111,7 +111,7 @@ YouTube, TikTok, VK, Instagram, X (Twitter), Rutube, Reddit, Twitch-клипы �
 <summary><b>Безопасно ли это?</b></summary>
 <br>
 Код открыт целиком. Каждый релиз собирают серверы GitHub прямо из этого репозитория, и к нему прилагается подпись происхождения. Проверить её можно так:
-<pre>gh attestation verify Kachalka-Windows.exe --repo kozliq/kachalka</pre>
+<pre>gh attestation verify Kachalka-Windows.exe --owner kozliq</pre>
 </details>
 
 Качай только то, что тебе можно скачивать: свои видео, видео с разрешения автора, видео для личного просмотра.
