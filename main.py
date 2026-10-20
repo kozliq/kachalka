@@ -39,24 +39,28 @@ def desktop_dir():
     return d if d.exists() else Path.home()
 
 
-def load_out_dir():
+QUALITIES = ["1080p", "720p", "480p"]
+
+
+def load_config():
     try:
-        saved = json.loads(CONFIG.read_text("utf-8")).get("out_dir")
-        if saved:
-            return Path(saved)
+        return json.loads(CONFIG.read_text("utf-8"))
+    except Exception:
+        return {}
+
+
+def save_config(**values):
+    cfg = load_config()
+    cfg.update(values)
+    try:
+        CONFIG.write_text(json.dumps(cfg, ensure_ascii=False), "utf-8")
     except Exception:
         pass
-    return desktop_dir() / "Качалка"
 
 
-def save_out_dir(path):
-    try:
-        CONFIG.write_text(json.dumps({"out_dir": str(path)}, ensure_ascii=False), "utf-8")
-    except Exception:
-        pass
-
-
-OUT_DIR = load_out_dir()
+_cfg = load_config()
+OUT_DIR = Path(_cfg["out_dir"]) if _cfg.get("out_dir") else desktop_dir() / "Качалка"
+QUALITY = _cfg.get("quality") if _cfg.get("quality") in QUALITIES else QUALITIES[0]
 
 # в собранной программе без консоли stdout/stderr пустые — yt-dlp на это падает
 if sys.stdout is None:
@@ -108,13 +112,40 @@ def fmt_speed(bps):
     return f"{mb:.1f} МБ/с" if mb >= 1 else f"{bps / 1024:.0f} КБ/с"
 
 
+NET_ERRORS = ("getaddrinfo", "name or service not known", "nodename nor servname",
+              "failed to resolve", "name resolution", "timed out", "connection reset",
+              "connection refused", "network is unreachable", "unable to connect",
+              "connection aborted", "remote end closed", "ssl")
+VPN_HINT = "Включи VPN для всего компьютера (не расширение в браузере) и попробуй ещё раз."
+
+
+def friendly_error(raw):
+    """Переводит ошибку yt-dlp на понятный язык."""
+    m = raw.lower()
+    if any(s in m for s in NET_ERRORS):
+        return "Нет связи с сайтом — похоже, он заблокирован у провайдера. " + VPN_HINT
+    if "sign in to confirm" in m or "not a bot" in m:
+        return "YouTube просит подтвердить, что ты не робот. Смени сервер VPN или попробуй позже."
+    if "unsupported url" in m:
+        return "Эта ссылка не поддерживается. Проверь, что это ссылка на само видео."
+    if "private" in m or "log in" in m or "login" in m or "sign in" in m:
+        return "Видео закрытое или доступно только после входа на сайт."
+    if "unavailable" in m or "not available" in m or "removed" in m:
+        return "Видео недоступно: его удалили или закрыли в твоей стране. " + VPN_HINT
+    if "unexpected response" in m or "unable to extract" in m or "report this issue" in m:
+        return "Сайт не отдал видео — так бывает из-за блокировок. " + VPN_HINT + \
+               " Не помогло — скачай свежую версию Качалки."
+    return raw.replace("ERROR: ", "")[:140]
+
+
 class Downloader(threading.Thread):
     """Качает в фоне и шлёт события в очередь, окно их читает."""
 
-    def __init__(self, url, events):
+    def __init__(self, url, events, quality="1080p"):
         super().__init__(daemon=True)
         self.url = url
         self.events = events
+        self.height = int(quality.rstrip("p"))
         self.weights = {}       # format_id → доля от общего размера
         self.done_share = 0.0   # сколько уже скачано целыми частями
         self.current = None
@@ -144,9 +175,10 @@ class Downloader(threading.Thread):
     def run(self):
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         opts = {
-            # эквивалент: -S "vcodec:h264,res,acodec:m4a" --merge-output-format mp4
+            # эквивалент: -S "vcodec:h264,res:720,acodec:m4a" --merge-output-format mp4
+            # res — по меньшей стороне, так что вертикальные видео тоже считаются верно
             "format": "bv*+ba/b",
-            "format_sort": ["vcodec:h264", "res", "acodec:m4a"],
+            "format_sort": ["vcodec:h264", f"res:{self.height}", "acodec:m4a"],
             "merge_output_format": "mp4",
             "outtmpl": str(OUT_DIR / "%(title).80s.%(ext)s"),
             "noplaylist": True,
@@ -179,8 +211,7 @@ class Downloader(threading.Thread):
                     path = rd.get("filepath") or path
                 self.send("done", path=path)
         except yt_dlp.utils.DownloadError as e:
-            msg = str(e).replace("ERROR: ", "")
-            self.send("error", text=msg[:160])
+            self.send("error", text=friendly_error(str(e)))
         except Exception as e:  # чтобы окно не зависло на любой ошибке
             self.send("error", text=f"{type(e).__name__}: {e}"[:160])
 
@@ -244,12 +275,22 @@ class App(ctk.CTk):
                       font=ctk.CTkFont(size=15),
                       command=self.paste).pack(side="left", padx=(8, 0))
 
-        self.btn = ctk.CTkButton(wrap, text="Скачать", height=44, corner_radius=6,
+        row2 = ctk.CTkFrame(wrap, fg_color=BG)
+        row2.pack(fill="x", pady=(12, 16))
+        self.quality = ctk.CTkSegmentedButton(
+            row2, values=QUALITIES, height=44, width=228, corner_radius=6,
+            fg_color=PANEL, selected_color=BORDER, selected_hover_color=BORDER,
+            unselected_color=PANEL, unselected_hover_color="#2a2236",
+            text_color=TEXT, text_color_disabled=TEXT_2,
+            font=ctk.CTkFont(size=15), command=self.set_quality)
+        self.quality.set(QUALITY)
+        self.quality.pack(side="left")
+        self.btn = ctk.CTkButton(row2, text="Скачать", height=44, corner_radius=6,
                                  fg_color=ACCENT, hover_color=ACCENT_HOVER,
                                  text_color="#ffffff", text_color_disabled="#ffffff",
                                  font=ctk.CTkFont(size=16, weight="bold"),
                                  command=self.start)
-        self.btn.pack(fill="x", pady=(12, 16))
+        self.btn.pack(side="left", fill="x", expand=True, padx=(8, 0))
 
         # область анимации: фиксированного размера, чтобы окно не прыгало
         self.stage = ctk.CTkFrame(wrap, width=GIF_W, height=GIF_H, corner_radius=6,
@@ -352,7 +393,7 @@ class App(ctk.CTk):
         picked = filedialog.askdirectory(initialdir=str(OUT_DIR), title="Куда сохранять видео")
         if picked:
             OUT_DIR = Path(picked)
-            save_out_dir(OUT_DIR)
+            save_config(out_dir=str(OUT_DIR))
             self.last_path = None
             self.set_status(self.folder_hint())
 
@@ -369,6 +410,9 @@ class App(ctk.CTk):
         else:
             subprocess.run(["xdg-open", str(OUT_DIR)])
 
+    def set_quality(self, value):
+        save_config(quality=value)
+
     def start(self):
         if self.worker and self.worker.is_alive():
             return
@@ -379,9 +423,10 @@ class App(ctk.CTk):
         self.target = self.shown = 0.0
         self.bar.set(0)
         self.btn.configure(state="disabled", text="Качаю…")
+        self.quality.configure(state="disabled")
         self.set_status("Начинаю…", TEXT)
         self.show_gif()
-        self.worker = Downloader(url, self.events)
+        self.worker = Downloader(url, self.events, self.quality.get())
         self.worker.start()
 
     def set_status(self, text, color=TEXT_2):
@@ -389,6 +434,7 @@ class App(ctk.CTk):
 
     def finish(self):
         self.btn.configure(state="normal", text="Скачать")
+        self.quality.configure(state="normal")
 
     # ---------- цикл окна: события из потока + плавный прогресс ----------
     def tick(self):
@@ -416,8 +462,8 @@ class App(ctk.CTk):
                 elif kind == "error":
                     self.target = self.shown = 0.0
                     self.bar.set(0)
-                    self.set_status(f"Не получилось: {data['text']}", ERR)
-                    self.hide_gif("Что-то пошло не так.\nПроверь ссылку и попробуй ещё раз")
+                    self.set_status(data["text"], ERR)
+                    self.hide_gif("Не получилось скачать.\nЧто случилось — написано ниже")
                     self.finish()
         except queue.Empty:
             pass
