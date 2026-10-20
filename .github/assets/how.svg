@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"><defs><radialGradient id="g1" cx="15%" cy="20%" r="60%"><stop offset="0" stop-color="#3b2470"/><stop offset="1" stop-color="#3b2470" stop-opacity="0"/></radialGradient><radialGradient id="g2" cx="90%" cy="90%" r="55%"><stop offset="0" stop-color="#4a1f5e"/><stop offset="1" stop-color="#4a1f5e" stop-opacity="0"/></radialGradient><linearGradient id="pur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4a8ff"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+<rect width="1280" height="420" rx="28" fill="#120e19"/><rect width="1280" height="420" rx="28" fill="url(#g1)"/><rect width="1280" height="420" rx="28" fill="url(#g2)"/>
+<text x="640" y="74" text-anchor="middle" font-size="36" font-weight="800" fill="#f0ebee">Три шага. Ноль настроек.</text>
+<rect x="40" y="120" width="360" height="250" rx="20" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".1"/>
+<text x="72" y="168" font-size="15" font-weight="800" letter-spacing="2" fill="#a78bfa">01</text>
+<rect x="72" y="192" width="52" height="52" rx="12" fill="#7c3aed" fill-opacity=".45" stroke="#a78bfa" stroke-opacity=".7"/>
+<g transform="translate(98 218)" fill="none" stroke="#f0ebee" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M-4 4 l8 -8"/><path d="M-2 -9 l3 -3 a6 6 0 0 1 9 9 l-3 3"/><path d="M2 9 l-3 3 a6 6 0 0 1 -9 -9 l3 -3"/></g>
+<text x="72" y="292" font-size="27" font-weight="700" fill="#f0ebee">Скопируй ссылку</text>
+<text x="72" y="326" font-size="18" fill="#b8afb6">YouTube, TikTok, VK, Instagram</text>
+<text x="72" y="350" font-size="18" fill="#b8afb6">и ещё сотни сайтов</text>
+<rect x="460" y="120" width="360" height="250" rx="20" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".1"/>
+<text x="492" y="168" font-size="15" font-weight="800" letter-spacing="2" fill="#a78bfa">02</text>
+<rect x="492" y="192" width="52" height="52" rx="12" fill="#7c3aed" fill-opacity=".45" stroke="#a78bfa" stroke-opacity=".7"/>
+<g transform="translate(518 218)" fill="none" stroke="#f0ebee" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M0 -12 v20"/><path d="M-8 1 l8 8 l8 -8"/><path d="M-12 13 h24"/></g>
+<text x="492" y="292" font-size="27" font-weight="700" fill="#f0ebee">Нажми «Скачать»</text>
+<text x="492" y="326" font-size="18" fill="#b8afb6">Челик побежит по офису</text>
+<text x="492" y="350" font-size="18" fill="#b8afb6">собирать твои файлы</text>
+<rect x="880" y="120" width="360" height="250" rx="20" fill="#ffffff" fill-opacity=".05" stroke="#ffffff" stroke-opacity=".1"/>
+<text x="912" y="168" font-size="15" font-weight="800" letter-spacing="2" fill="#a78bfa">03</text>
+<rect x="912" y="192" width="52" height="52" rx="12" fill="#7c3aed" fill-opacity=".45" stroke="#a78bfa" stroke-opacity=".7"/>
+<g transform="translate(938 218)" fill="none" stroke="#f0ebee" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M-6 -10 l15 10 l-15 10 z" fill="#f0ebee"/></g>
+<text x="912" y="292" font-size="27" font-weight="700" fill="#f0ebee">Смотри</text>
+<text x="912" y="326" font-size="18" fill="#b8afb6">mp4 уже на Рабочем столе,</text>
+<text x="912" y="350" font-size="18" fill="#b8afb6">в папке «Качалка»</text>
+</svg>

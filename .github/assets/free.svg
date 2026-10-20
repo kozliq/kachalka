@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"><defs><radialGradient id="g1" cx="15%" cy="20%" r="60%"><stop offset="0" stop-color="#3b2470"/><stop offset="1" stop-color="#3b2470" stop-opacity="0"/></radialGradient><radialGradient id="g2" cx="90%" cy="90%" r="55%"><stop offset="0" stop-color="#4a1f5e"/><stop offset="1" stop-color="#4a1f5e" stop-opacity="0"/></radialGradient><linearGradient id="pur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4a8ff"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+<rect width="1280" height="300" rx="28" fill="#120e19"/><rect width="1280" height="300" rx="28" fill="url(#g1)"/><rect width="1280" height="300" rx="28" fill="url(#g2)"/>
+<text x="180" y="170" text-anchor="middle" font-size="96" font-weight="800" fill="url(#pur)">0 ₽</text>
+<text x="180" y="222" text-anchor="middle" font-size="24" fill="#b8afb6">стоит</text>
+<text x="487" y="170" text-anchor="middle" font-size="96" font-weight="800" fill="url(#pur)">0</text>
+<text x="487" y="222" text-anchor="middle" font-size="24" fill="#b8afb6">водяных знаков</text>
+<text x="793" y="170" text-anchor="middle" font-size="96" font-weight="800" fill="url(#pur)">0</text>
+<text x="793" y="222" text-anchor="middle" font-size="24" fill="#b8afb6">рекламы</text>
+<text x="1100" y="170" text-anchor="middle" font-size="96" font-weight="800" fill="url(#pur)">0</text>
+<text x="1100" y="222" text-anchor="middle" font-size="24" fill="#b8afb6">регистраций</text>
+<rect x="333" y="100" width="1" height="120" fill="#ffffff" fill-opacity=".12"/><rect x="640" y="100" width="1" height="120" fill="#ffffff" fill-opacity=".12"/><rect x="946" y="100" width="1" height="120" fill="#ffffff" fill-opacity=".12"/>
+</svg>

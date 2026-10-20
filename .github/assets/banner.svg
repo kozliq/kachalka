@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"><defs><radialGradient id="g1" cx="15%" cy="20%" r="60%"><stop offset="0" stop-color="#3b2470"/><stop offset="1" stop-color="#3b2470" stop-opacity="0"/></radialGradient><radialGradient id="g2" cx="90%" cy="90%" r="55%"><stop offset="0" stop-color="#4a1f5e"/><stop offset="1" stop-color="#4a1f5e" stop-opacity="0"/></radialGradient><linearGradient id="pur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4a8ff"/><stop offset="1" stop-color="#7c3aed"/></linearGradient><linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241a38"/><stop offset="1" stop-color="#120d1a"/></linearGradient></defs>
+<rect width="1280" height="420" rx="28" fill="#120e19"/><rect width="1280" height="420" rx="28" fill="url(#g1)"/><rect width="1280" height="420" rx="28" fill="url(#g2)"/>
+<rect x="150" y="95" width="230" height="230" rx="52" fill="url(#tile)" stroke="#3a2f52" stroke-width="3"/>
+<text x="265" y="268" text-anchor="middle" font-size="170" font-weight="800" fill="url(#pur)">К</text>
+<text x="450" y="205" font-size="108" font-weight="700" letter-spacing="-3" fill="#f0ebee">Качалка</text>
+<text x="454" y="262" font-size="34" fill="#b8afb6">Вставил ссылку — видео уже у тебя.</text>
+<text x="454" y="312" font-size="24" fill="#b8afb6">Windows и Mac · бесплатно · без водяных знаков</text>
+</svg>
