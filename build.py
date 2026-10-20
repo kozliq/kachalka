@@ -21,6 +21,7 @@ args = [
     "--collect-data=customtkinter",
     "--collect-submodules=yt_dlp",
     "--collect-all=imageio_ffmpeg",
+    "--collect-all=curl_cffi",      # «притворяется» браузером — без этого TikTok не отдаёт видео
 ]
 if sys.platform == "win32":
     args += ["--onefile", "--icon=icon.ico"]

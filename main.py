@@ -98,6 +98,34 @@ def find_ffmpeg():
     return None
 
 
+def tidy_mp4(path, ffmpeg):
+    """Переупаковывает mp4 без перекодирования.
+
+    TikTok иногда пишет видеодорожку со странным масштабом времени,
+    и QuickTime/Finder видят в файле только звук. Переупаковка это лечит.
+    """
+    if not (path and ffmpeg and path.lower().endswith(".mp4") and os.path.exists(path)):
+        return
+    tmp = path[:-4] + ".tidy.mp4"
+    flags = 0x08000000 if IS_WIN else 0   # CREATE_NO_WINDOW: без чёрного окна на Windows
+    try:
+        r = subprocess.run([ffmpeg, "-nostdin", "-v", "error", "-y", "-i", path, "-map", "0",
+                            "-c", "copy", "-video_track_timescale", "90000",
+                            "-movflags", "+faststart", tmp],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           creationflags=flags, timeout=600)
+        if r.returncode == 0 and os.path.getsize(tmp) > 0:
+            os.replace(tmp, path)
+    except Exception:
+        pass
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except Exception:
+                pass
+
+
 def fmt_time(sec):
     if sec is None:
         return ""
@@ -209,6 +237,8 @@ class Downloader(threading.Thread):
                 path = None
                 for rd in (result or {}).get("requested_downloads") or []:
                     path = rd.get("filepath") or path
+                self.send("stage", text="Привожу файл в порядок…")
+                tidy_mp4(path, ffmpeg)
                 self.send("done", path=path)
         except yt_dlp.utils.DownloadError as e:
             self.send("error", text=friendly_error(str(e)))
