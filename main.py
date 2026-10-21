@@ -1,6 +1,7 @@
 """Качалка видео: вставил ссылку → нажал «Скачать» → mp4 на Рабочем столе.
 
 Видео сохраняется так, чтобы открывалось в QuickTime (H.264 + AAC в mp4).
+В режиме «MP3» качается только звук и перегоняется в mp3 с обложкой.
 """
 import json
 import os
@@ -39,7 +40,8 @@ def desktop_dir():
     return d if d.exists() else Path.home()
 
 
-QUALITIES = ["1080p", "720p", "480p"]
+AUDIO = "MP3"
+QUALITIES = ["1080p", "720p", "480p", AUDIO]
 
 
 def load_config():
@@ -173,7 +175,8 @@ class Downloader(threading.Thread):
         super().__init__(daemon=True)
         self.url = url
         self.events = events
-        self.height = int(quality.rstrip("p"))
+        self.audio = quality == AUDIO
+        self.height = 0 if self.audio else int(quality.rstrip("p"))
         self.weights = {}       # format_id → доля от общего размера
         self.done_share = 0.0   # сколько уже скачано целыми частями
         self.current = None
@@ -197,8 +200,12 @@ class Downloader(threading.Thread):
             self.send("progress", value=self.done_share * 0.97, speed=None, eta=None)
 
     def pp_hook(self, d):
-        if d["status"] == "started" and d.get("postprocessor") == "Merger":
+        if d["status"] != "started":
+            return
+        if d.get("postprocessor") == "Merger":
             self.send("stage", text="Склеиваю видео и звук…")
+        elif d.get("postprocessor") == "ExtractAudio":
+            self.send("stage", text="Перегоняю в MP3…")
 
     def run(self):
         OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -216,6 +223,17 @@ class Downloader(threading.Thread):
             "progress_hooks": [self.hook],
             "postprocessor_hooks": [self.pp_hook],
         }
+        if self.audio:
+            # эквивалент: -f "ba/b" -x --audio-format mp3 --audio-quality 320K
+            #             --embed-metadata --embed-thumbnail
+            del opts["format_sort"], opts["merge_output_format"]
+            opts["format"] = "ba/b"
+            opts["writethumbnail"] = True
+            opts["postprocessors"] = [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "320"},
+                {"key": "FFmpegMetadata", "add_metadata": True},
+                {"key": "EmbedThumbnail", "already_have_thumbnail": False},
+            ]
         ffmpeg = find_ffmpeg()
         if ffmpeg:
             opts["ffmpeg_location"] = ffmpeg
@@ -232,13 +250,18 @@ class Downloader(threading.Thread):
                 total = sum(sizes)
                 for p, s in zip(parts, sizes):
                     self.weights[p.get("format_id")] = s / total if total else 1 / len(parts)
-                self.send("stage", text=f"Качаю: {info.get('title', 'видео')[:60]}")
+                what = "звук" if self.audio else "видео"
+                self.send("stage", text=f"Качаю {what}: {info.get('title', what)[:60]}")
                 result = ydl.process_ie_result(info, download=True)
                 path = None
                 for rd in (result or {}).get("requested_downloads") or []:
                     path = rd.get("filepath") or path
-                self.send("stage", text="Привожу файл в порядок…")
-                tidy_mp4(path, ffmpeg)
+                if self.audio:
+                    mp3 = os.path.splitext(path)[0] + ".mp3" if path else None
+                    path = mp3 if mp3 and os.path.exists(mp3) else path
+                else:
+                    self.send("stage", text="Привожу файл в порядок…")
+                    tidy_mp4(path, ffmpeg)
                 self.send("done", path=path)
         except yt_dlp.utils.DownloadError as e:
             self.send("error", text=friendly_error(str(e)))
@@ -287,7 +310,7 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(wrap, text="Качалка", text_color=TEXT,
                      font=ctk.CTkFont(size=24, weight="bold")).pack(anchor="w")
-        ctk.CTkLabel(wrap, text="YouTube, TikTok, VK, Instagram — в mp4, открывается везде",
+        ctk.CTkLabel(wrap, text="YouTube, TikTok, VK, Instagram — видео в mp4 или звук в mp3",
                      text_color=TEXT_2, font=ctk.CTkFont(size=13)).pack(anchor="w", pady=(2, 16))
 
         row = ctk.CTkFrame(wrap, fg_color=BG)
@@ -308,7 +331,7 @@ class App(ctk.CTk):
         row2 = ctk.CTkFrame(wrap, fg_color=BG)
         row2.pack(fill="x", pady=(12, 16))
         self.quality = ctk.CTkSegmentedButton(
-            row2, values=QUALITIES, height=44, width=228, corner_radius=6,
+            row2, values=QUALITIES, height=44, width=290, corner_radius=6,
             fg_color=PANEL, selected_color=BORDER, selected_hover_color=BORDER,
             unselected_color=PANEL, unselected_hover_color="#2a2236",
             text_color=TEXT, text_color_disabled=TEXT_2,
