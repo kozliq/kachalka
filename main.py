@@ -20,6 +20,7 @@ import yt_dlp
 # внутри собранной программы (exe / .app) файлы лежат во временной папке
 APP_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 GIF_PATH = APP_DIR / "animation.gif"
+CAT_PATH = APP_DIR / "cat.gif"          # котик в наушниках — пока качается звук
 CONFIG = Path.home() / ".kachalka.json"
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
@@ -83,6 +84,8 @@ OK = "#7fd88f"
 ERR = "#ff8a8a"
 
 GIF_W, GIF_H = 480, 240
+IDLE_VIDEO = "Вставь ссылку —\nи челик побежит за файлами"
+IDLE_AUDIO = "Вставь ссылку —\nи котик врубит музыку"
 
 
 def find_ffmpeg():
@@ -282,7 +285,9 @@ class App(ctk.CTk):
         self.target = 0.0
         self.shown = 0.0
         self.last_path = None
-        self.frames, self.delays = self.load_gif()
+        self.runner = self.load_gif(GIF_PATH)
+        self.cat = self.load_gif(CAT_PATH)
+        self.frames, self.delays = self.runner
         self.frame_i = 0
         self.anim_job = None
 
@@ -350,7 +355,7 @@ class App(ctk.CTk):
                                   fg_color=PANEL, border_width=1, border_color=BORDER)
         self.stage.pack()
         self.stage.pack_propagate(False)
-        self.idle = ctk.CTkLabel(self.stage, text="Вставь ссылку —\nи челик побежит за файлами",
+        self.idle = ctk.CTkLabel(self.stage, text=IDLE_AUDIO if QUALITY == AUDIO else IDLE_VIDEO,
                                  text_color=TEXT_2, font=ctk.CTkFont(size=15))
         self.idle.place(relx=0.5, rely=0.5, anchor="center")
         self.gif = ctk.CTkLabel(self.stage, text="")
@@ -377,11 +382,11 @@ class App(ctk.CTk):
                       font=ctk.CTkFont(size=13),
                       command=self.choose_folder).pack(side="right", padx=(0, 8))
 
-    def load_gif(self):
-        if not GIF_PATH.exists():
+    def load_gif(self, path):
+        if not path.exists():
             return [], []
         frames, delays = [], []
-        src = Image.open(GIF_PATH)
+        src = Image.open(path)
         for fr in ImageSequence.Iterator(src):
             img = fr.convert("RGBA")
             # вписываем в область, сохраняя пропорции
@@ -394,7 +399,8 @@ class App(ctk.CTk):
         return frames, delays
 
     # ---------- гифка ----------
-    def show_gif(self):
+    def show_gif(self, audio=False):
+        self.frames, self.delays = self.cat if audio and self.cat[0] else self.runner
         if not self.frames:
             return
         self.idle.place_forget()
@@ -465,6 +471,8 @@ class App(ctk.CTk):
 
     def set_quality(self, value):
         save_config(quality=value)
+        if self.idle.cget("text") in (IDLE_VIDEO, IDLE_AUDIO):
+            self.idle.configure(text=IDLE_AUDIO if value == AUDIO else IDLE_VIDEO)
 
     def start(self):
         if self.worker and self.worker.is_alive():
@@ -478,7 +486,7 @@ class App(ctk.CTk):
         self.btn.configure(state="disabled", text="Качаю…")
         self.quality.configure(state="disabled")
         self.set_status("Начинаю…", TEXT)
-        self.show_gif()
+        self.show_gif(audio=self.quality.get() == AUDIO)
         self.worker = Downloader(url, self.events, self.quality.get())
         self.worker.start()
 
