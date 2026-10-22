@@ -144,12 +144,6 @@ YouTube, TikTok, VK, Instagram, X (Twitter), Rutube, Reddit, Twitch-клипы �
 <pre>gh attestation verify Kachalka-Windows.exe --owner kozliq</pre>
 </details>
 
-<details>
-<summary><b>Вместо моего видео скачался какой-то клип из восьмидесятых</b></summary>
-<br>
-Поздравляем, тебя зарикроллили 🕺 При самом первом скачивании Качалка крутит «русскую рулетку»: с шансом 1 из 10 вместо твоего видео приходит <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Never Gonna Give You Up</a>. Это один раз: жми «Скачать» ещё раз — и будет твоё видео. В этот момент программа отправляет на сайт пустой запрос «+1 зарикролленный» — без ссылок и данных о тебе, просто чтобы знать, сколько нас в клубе. Всё это — функция <code>roll_rickroll</code> в <a href="main.py">main.py</a>.
-</details>
-
 Качай только то, что тебе можно скачивать: свои видео, видео с разрешения автора, видео для личного просмотра.
 
 ## Поддержать
@@ -164,7 +158,6 @@ python main.py          # запустить
 python make_gif.py      # перерисовать челика
 python make_cat.py      # перерисовать котика (MP3)
 python make_vibe.py фото.png  # кот для длинных треков из фото
-python make_rick.py     # перерисовать Рика (сам знаешь зачем)
 python build.py         # собрать exe / app в папку dist
 ```
 
