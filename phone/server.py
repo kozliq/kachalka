@@ -1,10 +1,12 @@
-"""Качалка для телефона: сервер на Маке.
+"""Качалка для телефона: сервер.
 
 Телефон (страница kachalka.flownote.cc/app) присылает ссылку, сервер качает
 через yt-dlp и отдаёт готовый файл. Наружу сервер выходит через Cloudflare
 Tunnel (kachalka-api.flownote.cc), сам слушает только 127.0.0.1.
 
-Запуск: phone/run.sh (его держит launchd, см. phone/README.md).
+Запуск: phone/run.sh. Живёт на сервере в Финляндии (systemd), запасной
+вариант — Мак (launchd), см. phone/README.md. Папки и лимиты меняются
+переменными окружения KACHALKA_*.
 """
 import hashlib
 import json
@@ -24,9 +26,10 @@ from urllib.parse import quote
 import certifi
 import yt_dlp
 
-PORT = int(os.environ.get("KACHALKA_PORT", "8977"))
-WORK = Path.home() / "Library" / "Caches" / "Kachalka-phone"
-STATS = Path.home() / "Library" / "Application Support" / "Kachalka-phone" / "stats.json"
+ENV = os.environ.get
+PORT = int(ENV("KACHALKA_PORT", "8977"))
+WORK = Path(ENV("KACHALKA_WORK") or Path.home() / "Library" / "Caches" / "Kachalka-phone")
+STATS = Path(ENV("KACHALKA_DATA") or Path.home() / "Library" / "Application Support" / "Kachalka-phone") / "stats.json"
 PUSH_KEY = STATS.parent / "push.key"                       # ключ для отправки счётчика на сайт
 PUSH_URL = "https://kachalka.flownote.cc/api/phone"         # счётчики на сайте и в README
 GITHUB_API = "https://api.github.com/repos/kozliq/kachalka/releases?per_page=100"
@@ -35,9 +38,11 @@ ORIGINS = {"https://kachalka.flownote.cc", "http://localhost:8931", "http://loca
 
 QUALITIES = ("1080p", "720p", "480p", "mp3")
 LONG_TRACK = 120            # секунд: дольше — на телефоне кивает кот в наушниках
-MAX_PARALLEL = 2            # сколько загрузок одновременно
+MAX_PARALLEL = int(ENV("KACHALKA_PARALLEL", "2"))   # сколько загрузок одновременно
 MAX_PER_HOUR = 30           # загрузок с одного адреса в час
-MAX_BYTES = 2 * 1024 ** 3   # больше 2 ГБ не качаем
+MAX_GB = float(ENV("KACHALKA_MAX_GB", "2"))         # больше этого не качаем
+MAX_BYTES = int(MAX_GB * 1024 ** 3)
+GB_TEXT = f"{MAX_GB:g}".replace(".", ",")
 KEEP_FILES = 2 * 3600       # файлы живут 2 часа
 RESTART_AFTER = 24 * 3600   # раз в сутки без загрузок — перезапуск (run.sh обновит yt-dlp)
 
@@ -85,8 +90,10 @@ NET_ERRORS = ("getaddrinfo", "name or service not known", "nodename nor servname
 
 def friendly_error(raw):
     m = raw.lower()
+    if "no space left" in m:
+        return "На сервере кончилось место. Попробуй через пару минут или выбери 720p."
     if "max_filesize" in m or "larger than max" in m:
-        return "Файл больше 2 ГБ — для телефона это слишком. Выбери 720p или 480p."
+        return f"Файл больше {GB_TEXT} ГБ — для телефона это слишком. Выбери 720p или 480p."
     if "unsupported url" in m:
         return "Эта ссылка не поддерживается. Проверь, что это ссылка на само видео."
     if "sign in to confirm" in m or "not a bot" in m:
@@ -131,7 +138,7 @@ def github_counts():
     """Сколько раз скачали программу с GitHub и последняя версия.
 
     Cloudflare сам у GitHub спросить не может (общий лимит запросов на его адреса),
-    поэтому спрашивает Мак и отправляет на сайт вместе с телефонными числами.
+    поэтому спрашивает сервер Качалки и отправляет на сайт вместе с телефонными числами.
     """
     try:
         req = urllib.request.Request(GITHUB_API, headers={"User-Agent": "kachalka-phone",
@@ -163,6 +170,20 @@ def push_total(videos, users, with_github=False):
             print("push:", e, flush=True)
 
     threading.Thread(target=go, daemon=True).start()
+
+
+def make_room(current):
+    """Мало места на диске — удаляет самые старые готовые загрузки (на сервере диск маленький)."""
+    need = 2 * MAX_BYTES + 512 * 1024 ** 2     # склейка и переупаковка держат две копии файла
+    with jobs_lock:
+        old = sorted((j for j in jobs.values() if j is not current and j.state in ("done", "error")),
+                     key=lambda j: j.created)
+    for j in old:
+        if shutil.disk_usage(WORK).free >= need:
+            break
+        shutil.rmtree(j.dir, ignore_errors=True)
+        with jobs_lock:
+            jobs.pop(j.id, None)
 
 
 class Job:
@@ -221,8 +242,9 @@ class Job:
         with slots:
             self.state = "working"
             self.stage = "Ищу видео по ссылке…"
+            make_room(self)
             caffeinate = None
-            try:   # пока качаем, Мак не засыпает
+            try:   # пока качаем, Мак не засыпает (на Linux caffeinate нет — и не надо)
                 caffeinate = subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())])
             except Exception:
                 pass
@@ -321,7 +343,7 @@ def janitor():
             if not hits[ip]:
                 del hits[ip]
         if now - STARTED > RESTART_AFTER and not busy:
-            os._exit(0)     # launchd поднимет заново, run.sh обновит yt-dlp
+            os._exit(0)     # systemd (или launchd на Маке) поднимет заново, run.sh обновит yt-dlp
 
 
 URL_RE = re.compile(r"https?://[^\s<>\"']+")
