@@ -5,7 +5,8 @@
 <p align="center">
   <a href="https://github.com/kozliq/kachalka/releases/latest"><img alt="Последний релиз" src="https://img.shields.io/github/v/release/kozliq/kachalka?style=for-the-badge&label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=7c3aed"></a>
   <a href="https://github.com/kozliq/kachalka/releases"><img alt="Скачивания" src="https://img.shields.io/github/downloads/kozliq/kachalka/total?style=for-the-badge&label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D0%B9&color=1b1b20"></a>
-  <img alt="Windows и macOS" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS-1b1b20?style=for-the-badge">
+  <a href="https://kachalka.flownote.cc/app/"><img alt="Видео, скачанных на телефоне" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fkachalka.flownote.cc%2Fapi%2Fbadge%2Fphone&style=for-the-badge"></a>
+  <img alt="Windows, macOS, iPhone и Android" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20iPhone%20%C2%B7%20Android-1b1b20?style=for-the-badge">
   <a href="https://kachalka.flownote.cc"><img alt="Сайт" src="https://img.shields.io/badge/%D1%81%D0%B0%D0%B9%D1%82-kachalka.flownote.cc-8b5cf6?style=for-the-badge"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-1b1b20?style=for-the-badge"></a>
 </p>
@@ -20,6 +21,8 @@
   <a href="https://github.com/kozliq/kachalka/releases/latest/download/Kachalka-Windows.exe"><b>⬇ Скачать для Windows</b></a>
   &nbsp;·&nbsp;
   <a href="https://github.com/kozliq/kachalka/releases/latest/download/Kachalka-Mac.zip"><b>⬇ Скачать для Mac</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://kachalka.flownote.cc/app/"><b>📱 На телефоне</b></a>
   &nbsp;·&nbsp;
   <a href="https://kachalka.flownote.cc"><b>Сайт</b></a>
   &nbsp;·&nbsp;
@@ -72,12 +75,28 @@
 
 Больше ничего ставить не нужно, всё нужное уже внутри. Папка «Качалка» на Рабочем столе появится сама при первом запуске.
 
+### iPhone и Android
+
+Ничего скачивать не нужно: телефонная версия — это сайт, который ставится на экран «Домой» и открывается как обычное приложение.
+
+1. Открой **[kachalka.flownote.cc/app](https://kachalka.flownote.cc/app/)**: на iPhone в Safari, на Android в Chrome. При первом заходе страница сама покажет, куда нажать.
+2. iPhone: «•••» (или «Поделиться») → «На экран „Домой“» → «Добавить». Android: «Поставить на телефон» прямо на странице.
+3. Вставь ссылку, нажми «Скачать», потом «Сохранить в Фото». Звук в MP3 сохраняется в «Файлы».
+
+Когда Качалка стоит на экране Android, можно ещё проще: в YouTube или TikTok нажми «Поделиться» → «Качалка», и загрузка начнётся сама.
+
 ## Вопросы
 
 <details>
 <summary><b>Правда бесплатно? Где подвох?</b></summary>
 <br>
-Подвоха нет. Программа работает на твоём компьютере, серверов у проекта нет, так что брать деньги не за что. Ни подписок, ни рекламы, ни «премиума». Если хочется сказать спасибо, есть <a href="DONATE.md">добровольная поддержка</a>, но она ни на что не влияет.
+Подвоха нет. Программа работает на твоём компьютере, так что брать деньги не за что. Ни подписок, ни рекламы, ни «премиума». Если хочется сказать спасибо, есть <a href="DONATE.md">добровольная поддержка</a>, но она ни на что не влияет.
+</details>
+
+<details>
+<summary><b>Как работает версия для телефона?</b></summary>
+<br>
+Айфон сам видео с YouTube скачать не может, поэтому телефон только передаёт ссылку, а качает компьютер автора: на нём крутится та же Качалка (папка <a href="phone">phone</a>). Готовый файл возвращается на телефон и сохраняется в Фото. Файлы удаляются с компьютера через два часа. Если компьютер выключен, на странице будет «сервер спит» — тогда попробуй позже или поставь программу на свой компьютер.
 </details>
 
 <details>
@@ -144,11 +163,17 @@ python build.py         # собрать exe / app в папку dist
 
 Новая версия выходит так: ставишь тег `v1.0.1` и отправляешь его на GitHub, а сборка для Windows и Mac запускается сама.
 
+Сервер для телефонной версии лежит в папке [`phone`](phone): как он устроен и как его запустить у себя — в [phone/README.md](phone/README.md).
+
 ## Благодарности
 
 [yt-dlp](https://github.com/yt-dlp/yt-dlp) делает всю тяжёлую работу, [FFmpeg](https://ffmpeg.org) склеивает видео со звуком, [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) рисует окно.
 
 Лицензия [MIT](LICENSE).
+
+## Автор
+
+Качалку бесплатно делает Валерий, студия **KSD**: сайты, Telegram-боты и автоматизация для малого бизнеса. Нужно что-то своё — [ksd.flownote.cc](https://ksd.flownote.cc/?from=github) или [Telegram](https://t.me/goatlerr).
 
 <br>
 
