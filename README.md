@@ -6,6 +6,7 @@
   <a href="https://github.com/kozliq/kachalka/releases/latest"><img alt="Последний релиз" src="https://img.shields.io/github/v/release/kozliq/kachalka?style=for-the-badge&label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=7c3aed"></a>
   <a href="https://github.com/kozliq/kachalka/releases"><img alt="Скачивания" src="https://img.shields.io/github/downloads/kozliq/kachalka/total?style=for-the-badge&label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D0%B9&color=1b1b20"></a>
   <img alt="Windows и macOS" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS-1b1b20?style=for-the-badge">
+  <a href="https://kachalka.flownote.cc"><img alt="Сайт" src="https://img.shields.io/badge/%D1%81%D0%B0%D0%B9%D1%82-kachalka.flownote.cc-8b5cf6?style=for-the-badge"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-1b1b20?style=for-the-badge"></a>
 </p>
 
@@ -47,22 +48,10 @@
 
 ## Пока качается
 
-Пока идёт загрузка, по офису бегает челик и складывает в папку твои файлы. Мелочь, а приятно.
+Пока идёт загрузка, в окне играет своя анимация — для видео, для MP3 и для длинных треков. Мелочь, а приятно.
 
 <p align="center">
-  <img src=".github/assets/runner.gif" width="480" alt="Пиксельный челик бежит по фиолетовому офису, в его папку летят листки">
-</p>
-
-А если качаешь звук, в ночном автобусе едет котик в наушниках и качает головой в такт.
-
-<p align="center">
-  <img src=".github/assets/cat.gif" width="480" alt="Пиксельный котик в белых наушниках, с бантиком и зелёным кристаллом из Sims едет в ночном автобусе и качает головой, вокруг летят ноты">
-</p>
-
-А если трек дольше 2 минут, котика сменяет полосатый кот в чёрных наушниках — кивает в такт.
-
-<p align="center">
-  <img src=".github/assets/vibe.gif" width="480" alt="Пиксельный полосатый кот в чёрных наушниках кивает в такт, вокруг летят ноты">
+  <img src=".github/assets/trio.gif" width="100%" alt="Три анимации Качалки: челик бежит по офису с папкой, котик в наушниках едет в ночном автобусе, полосатый кот в наушниках кивает в такт">
 </p>
 
 ## Установка
@@ -148,6 +137,8 @@ YouTube, TikTok, VK, Instagram, X (Twitter), Rutube, Reddit, Twitch-клипы �
 pip install -r requirements.txt
 python main.py          # запустить
 python make_gif.py      # перерисовать челика
+python make_cat.py      # перерисовать котика (MP3)
+python make_vibe.py фото.png  # кот для длинных треков из фото
 python build.py         # собрать exe / app в папку dist
 ```
 
@@ -158,3 +149,13 @@ python build.py         # собрать exe / app в папку dist
 [yt-dlp](https://github.com/yt-dlp/yt-dlp) делает всю тяжёлую работу, [FFmpeg](https://ffmpeg.org) склеивает видео со звуком, [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) рисует окно.
 
 Лицензия [MIT](LICENSE).
+
+<br>
+
+<p align="center">
+  <a href="https://kachalka.flownote.cc"><b>kachalka.flownote.cc</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/kozliq/kachalka/releases/latest"><b>Скачать</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/kozliq/kachalka"><b>⭐ Звезда</b></a>
+</p>
