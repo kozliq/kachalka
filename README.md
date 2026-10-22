@@ -173,7 +173,7 @@ python build.py         # собрать exe / app в папку dist
 
 ## Автор
 
-Качалку бесплатно делает Валерий, студия **KSD**: сайты, Telegram-боты и автоматизация для малого бизнеса. Нужно что-то своё — [ksd.flownote.cc](https://ksd.flownote.cc/?from=github) или [Telegram](https://t.me/goatlerr).
+Качалку придумал и делает Валерий Барабанов, студия **KSD** (kozliq studio design). Это некоммерческий проект: бесплатный, с открытым кодом и без рекламы. Другие работы автора — [ksd.flownote.cc](https://ksd.flownote.cc/?from=github).
 
 <br>
 
