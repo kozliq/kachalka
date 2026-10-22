@@ -2,10 +2,15 @@
 
 Видео сохраняется так, чтобы открывалось в QuickTime (H.264 + AAC в mp4).
 В режиме «MP3» качается только звук и перегоняется в mp3 с обложкой.
+
+Пасхалка: при самом первом скачивании Качалка крутит «русскую рулетку» —
+с шансом 1 из 10 вместо видео скачивается Never Gonna Give You Up.
+Следующее скачивание всегда честное.
 """
 import json
 import os
 import queue
+import random
 import shutil
 import subprocess
 import sys
@@ -22,7 +27,11 @@ APP_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 GIF_PATH = APP_DIR / "animation.gif"
 CAT_PATH = APP_DIR / "cat.gif"          # котик в наушниках — пока качается звук
 VIBE_PATH = APP_DIR / "vibe.gif"        # кот в наушниках кивает — если трек дольше 2 минут
+RICK_PATH = APP_DIR / "rick.gif"        # Рик танцует — тебя зарикроллили
 LONG_TRACK = 120                        # секунд
+RICK_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+RICK_CHANCE = 0.1                       # каждый десятый при первом скачивании
+RICK_COUNT = "https://kachalka.flownote.cc/api/rickroll"   # счётчик зарикролленных, без личных данных
 CONFIG = Path.home() / ".kachalka.json"
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
@@ -88,6 +97,7 @@ ERR = "#ff8a8a"
 GIF_W, GIF_H = 480, 240
 IDLE_VIDEO = "Вставь ссылку —\nи челик побежит за файлами"
 IDLE_AUDIO = "Вставь ссылку —\nи котик врубит музыку"
+RICKROLLED = "Хаха, тебя зарикроллили ♪ Жми «Скачать» ещё раз — теперь честно"
 
 
 def find_ffmpeg():
@@ -173,12 +183,37 @@ def friendly_error(raw):
     return raw.replace("ERROR: ", "")[:140]
 
 
+def count_rickroll():
+    """Сообщает сайту «+1 зарикролленный». Только пустой запрос, без ссылок и личных данных."""
+    def go():
+        try:
+            import ssl
+            import urllib.request
+            import certifi
+            req = urllib.request.Request(RICK_COUNT, data=b"", method="POST",
+                                         headers={"User-Agent": "Kachalka"})
+            ctx = ssl.create_default_context(cafile=certifi.where())
+            urllib.request.urlopen(req, timeout=10, context=ctx).read()
+        except Exception:
+            pass
+    threading.Thread(target=go, daemon=True).start()
+
+
+def first_video(info):
+    if info.get("_type") == "playlist":
+        info = next((e for e in info.get("entries") or [] if e), None)
+        if not info:
+            raise yt_dlp.utils.DownloadError("В плейлисте нет видео")
+    return info
+
+
 class Downloader(threading.Thread):
     """Качает в фоне и шлёт события в очередь, окно их читает."""
 
-    def __init__(self, url, events, quality="1080p"):
+    def __init__(self, url, events, quality="1080p", rick=False):
         super().__init__(daemon=True)
         self.url = url
+        self.rick = rick        # выпал рикролл: вместо этого видео качаем Рика
         self.events = events
         self.audio = quality == AUDIO
         self.height = 0 if self.audio else int(quality.rstrip("p"))
@@ -211,6 +246,16 @@ class Downloader(threading.Thread):
             self.send("stage", text="Склеиваю видео и звук…")
         elif d.get("postprocessor") == "ExtractAudio":
             self.send("stage", text="Перегоняю в MP3…")
+
+    def measure(self, info):
+        """Доли частей (видео и звук) в общем размере — для честной полоски прогресса."""
+        parts = info.get("requested_formats") or [info]
+        sizes = [p.get("filesize") or p.get("filesize_approx") or 0 for p in parts]
+        total = sum(sizes)
+        self.weights = {p.get("format_id"): s / total if total else 1 / len(parts)
+                        for p, s in zip(parts, sizes)}
+        self.done_share = 0.0
+        self.current = None
 
     def run(self):
         OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -245,21 +290,26 @@ class Downloader(threading.Thread):
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 self.send("stage", text="Ищу видео по ссылке…")
-                info = ydl.extract_info(self.url, download=False)
-                if info.get("_type") == "playlist":
-                    info = next((e for e in info.get("entries") or [] if e), None)
-                    if not info:
-                        raise yt_dlp.utils.DownloadError("В плейлисте нет видео")
-                parts = info.get("requested_formats") or [info]
-                sizes = [p.get("filesize") or p.get("filesize_approx") or 0 for p in parts]
-                total = sum(sizes)
-                for p, s in zip(parts, sizes):
-                    self.weights[p.get("format_id")] = s / total if total else 1 / len(parts)
+                info = own = first_video(ydl.extract_info(self.url, download=False))
+                if self.rick:
+                    try:
+                        info = first_video(ydl.extract_info(RICK_URL, download=False))
+                    except Exception:   # YouTube не открылся (например, без VPN) — качаем честно
+                        self.rick = False
+                self.measure(info)
                 if self.audio and (info.get("duration") or 0) > LONG_TRACK:
                     self.send("vibe")
                 what = "звук" if self.audio else "видео"
-                self.send("stage", text=f"Качаю {what}: {info.get('title', what)[:60]}")
-                result = ydl.process_ie_result(info, download=True)
+                # название — от видео человека, чтобы рикролл не спалился раньше времени
+                self.send("stage", text=f"Качаю {what}: {own.get('title', what)[:60]}")
+                try:
+                    result = ydl.process_ie_result(info, download=True)
+                except yt_dlp.utils.DownloadError:
+                    if not self.rick:
+                        raise
+                    self.rick = False   # Рик не скачался — человек не должен остаться ни с чем
+                    self.measure(own)
+                    result = ydl.process_ie_result(own, download=True)
                 path = None
                 for rd in (result or {}).get("requested_downloads") or []:
                     path = rd.get("filepath") or path
@@ -269,7 +319,7 @@ class Downloader(threading.Thread):
                 else:
                     self.send("stage", text="Привожу файл в порядок…")
                     tidy_mp4(path, ffmpeg)
-                self.send("done", path=path)
+                self.send("done", path=path, rick=self.rick)
         except yt_dlp.utils.DownloadError as e:
             self.send("error", text=friendly_error(str(e)))
         except Exception as e:  # чтобы окно не зависло на любой ошибке
@@ -292,6 +342,7 @@ class App(ctk.CTk):
         self.runner = self.load_gif(GIF_PATH)
         self.cat = self.load_gif(CAT_PATH)
         self.vibe = self.load_gif(VIBE_PATH)
+        self.rick = self.load_gif(RICK_PATH)
         self.frames, self.delays = self.runner
         self.frame_i = 0
         self.anim_job = None
@@ -492,8 +543,16 @@ class App(ctk.CTk):
         self.quality.configure(state="disabled")
         self.set_status("Начинаю…", TEXT)
         self.show_gif(audio=self.quality.get() == AUDIO)
-        self.worker = Downloader(url, self.events, self.quality.get())
+        self.worker = Downloader(url, self.events, self.quality.get(), rick=self.roll_rickroll())
         self.worker.start()
+
+    def roll_rickroll(self):
+        """Русская рулетка: крутится один раз — при первом скачивании после установки."""
+        if "rickroll" in load_config():
+            return False
+        won = random.random() < RICK_CHANCE
+        save_config(rickroll=won)
+        return won
 
     def set_status(self, text, color=TEXT_2):
         self.status.configure(text=text, text_color=color)
@@ -521,6 +580,14 @@ class App(ctk.CTk):
                     if data.get("eta"):
                         bits.append(f"осталось {fmt_time(data['eta'])}")
                     self.set_status(" · ".join(bits), TEXT)
+                elif kind == "done" and data.get("rick") and self.rick[0]:
+                    self.target = 1.0
+                    self.last_path = data.get("path")
+                    self.frames, self.delays = self.rick   # вместо «Готово» танцует Рик
+                    self.frame_i = 0
+                    self.set_status(RICKROLLED, OK)
+                    self.finish()
+                    count_rickroll()
                 elif kind == "done":
                     self.target = 1.0
                     self.last_path = data.get("path")
