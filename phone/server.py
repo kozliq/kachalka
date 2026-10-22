@@ -48,6 +48,9 @@ MAX_PARALLEL = int(ENV("KACHALKA_PARALLEL", "2"))   # сколько загру�
 MAX_PER_HOUR = 30           # загрузок с одного адреса в час
 MAX_ACTIVE = 3              # одновременно с одного адреса (качаются + ждут)
 MAX_WAITING = 25            # всего ждут очереди; больше — «сервер занят» (бот сам держит не больше 15)
+QUEUE_STEP = 15             # секунд в среднем на одну загрузку — для «примерно столько ждать»
+QUEUE_NOTE = ("Качалка бесплатная, а сервер у неё один, поэтому видео качаются по очереди. "
+              "Обычно это минута-две — спасибо, что ждёшь.")
 MAX_GB = float(ENV("KACHALKA_MAX_GB", "2"))         # больше этого не качаем
 MAX_BYTES = int(MAX_GB * 1024 ** 3)
 GB_TEXT = f"{MAX_GB:g}".replace(".", ",")
@@ -126,6 +129,16 @@ NET_ERRORS = ("getaddrinfo", "name or service not known", "nodename nor servname
               "failed to resolve", "name resolution", "timed out", "connection reset",
               "connection refused", "network is unreachable", "unable to connect",
               "connection aborted", "remote end closed", "ssl")
+
+
+def about(sec):
+    """Сколько ждать, по-человечески: «полминуты», «минута», «3 минуты»."""
+    if sec <= 30:
+        return "полминуты"
+    m = round(sec / 60) or 1
+    if m == 1:
+        return "минута"
+    return f"{m} минуты" if m % 10 in (2, 3, 4) and m % 100 not in (12, 13, 14) else f"{m} минут"
 
 
 def is_photo_post(error):
@@ -286,7 +299,9 @@ class Job:
                 ahead = sum(j.state == "working" or (j.state == "queued" and j.created < self.created)
                             for j in jobs.values())
             if ahead:
-                d["stage"] = f"Жду очереди, впереди {ahead}…"
+                d["ahead"] = ahead
+                d["stage"] = f"Ты в очереди: впереди {ahead}, это примерно {about(ahead * QUEUE_STEP)}"
+                d["note"] = QUEUE_NOTE
         if self.path and os.path.exists(self.path):
             d["name"] = os.path.basename(self.path)
             d["size"] = os.path.getsize(self.path)
@@ -571,7 +586,7 @@ class Handler(BaseHTTPRequestHandler):
             live = [j for j in jobs.values() if j.state in ("queued", "working")]
             recent = [t for t in hits.get(ip, []) if now - t < 3600]
             if sum(j.state == "queued" for j in live) >= MAX_WAITING:
-                error = 503, "Сейчас очень много желающих, сервер занят. Попробуй через пару минут."
+                error = 503, "Сейчас очень много желающих, а Качалка бесплатная и сервер у неё один. Пришли ссылку через пару минут — очередь быстро разойдётся."
             elif sum(j.who == ip for j in live) >= MAX_ACTIVE:
                 error = 429, "Сначала дождись прошлых загрузок — потом пришли эту."
             elif len(recent) >= MAX_PER_HOUR:

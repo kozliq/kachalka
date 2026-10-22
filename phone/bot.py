@@ -200,7 +200,8 @@ def progress_text(job):
         p = int((job.get("progress") or 0) * 100)
         stage = f"{stage}  {'▰' * (p // 10)}{'▱' * (10 - p // 10)}  {p}%"
     title = clean_title(job.get("title"))
-    return f"{stage}\n<b>{html.escape(title[:200])}</b>" if title else stage
+    text = f"{stage}\n<b>{html.escape(title[:200])}</b>" if title else stage
+    return f"{text}\n\n<i>{html.escape(job['note'])}</i>" if job.get("note") else text
 
 
 def clean_title(title):
@@ -333,7 +334,7 @@ def why_not(p, chat, cap, url, audio, now):
     if any(t[3] == url and t[4] == audio for t in line):
         return "Эту ссылку уже качаю — подожди немного."
     if sum(map(len, lines.values())) >= QUEUE_MAX:
-        return "Сейчас очень много желающих, очередь забита. Пришли ссылку через пару минут."
+        return "Сейчас очень много желающих, а Качалка бесплатная и сервер у неё один. Пришли ссылку через пару минут — очередь быстро разойдётся."
     if len(p.starts) >= PER_DAY:
         return f"Лимит — {PER_DAY} загрузок в сутки. Следующая — через {wait_text(p.starts[0] + 86400 - now)}."
     if sum(b for _, b in p.sizes) >= DAY_BYTES:
