@@ -6,7 +6,8 @@
   <a href="https://github.com/kozliq/kachalka/releases/latest"><img alt="Последний релиз" src="https://img.shields.io/github/v/release/kozliq/kachalka?style=for-the-badge&label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=7c3aed"></a>
   <a href="https://github.com/kozliq/kachalka/releases"><img alt="Скачивания" src="https://img.shields.io/github/downloads/kozliq/kachalka/total?style=for-the-badge&label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D0%B9&color=1b1b20"></a>
   <a href="https://kachalka.flownote.cc/app/"><img alt="Видео, скачанных на телефоне" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fkachalka.flownote.cc%2Fapi%2Fbadge%2Fphone&style=for-the-badge"></a>
-  <img alt="Windows, macOS, iPhone и Android" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20iPhone%20%C2%B7%20Android-1b1b20?style=for-the-badge">
+  <img alt="Windows, macOS, iPhone, Android и Telegram" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20iPhone%20%C2%B7%20Android%20%C2%B7%20Telegram-1b1b20?style=for-the-badge">
+  <a href="https://t.me/kachalka_videobot"><img alt="Бот в Telegram" src="https://img.shields.io/badge/Telegram-%40kachalka__videobot-8b5cf6?style=for-the-badge&logo=telegram&logoColor=white"></a>
   <a href="https://kachalka.flownote.cc"><img alt="Сайт" src="https://img.shields.io/badge/%D1%81%D0%B0%D0%B9%D1%82-kachalka.flownote.cc-8b5cf6?style=for-the-badge"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-1b1b20?style=for-the-badge"></a>
 </p>
@@ -23,6 +24,8 @@
   <a href="https://github.com/kozliq/kachalka/releases/latest/download/Kachalka-Mac.zip"><b>⬇ Скачать для Mac</b></a>
   &nbsp;·&nbsp;
   <a href="https://kachalka.flownote.cc/app/"><b>📱 На телефоне</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://t.me/kachalka_videobot"><b>✈️ Бот в Telegram</b></a>
   &nbsp;·&nbsp;
   <a href="https://kachalka.flownote.cc"><b>Сайт</b></a>
   &nbsp;·&nbsp;
@@ -85,6 +88,19 @@
 
 Когда Качалка стоит на экране Android, можно ещё проще: в YouTube или TikTok нажми «Поделиться» → «Качалка», и загрузка начнётся сама.
 
+### Telegram
+
+Ничего ставить не нужно: открой бота **[@kachalka_videobot](https://t.me/kachalka_videobot)**, нажми «Запустить» и кинь ему ссылку.
+
+<p align="center">
+  <img src=".github/assets/telegram.png" width="300" alt="Чат с ботом Качалки: ссылка из TikTok, видео пришло в чат, под ним кнопка «Только звук — MP3»">
+</p>
+
+- Пока качается, в сообщении бежит челик с папкой, а потом видео приходит прямо в чат. Переслал другу, и готово.
+- Под каждым видео кнопка «Только звук — MP3». Можно и сразу: допиши к ссылке «mp3».
+- Telegram разрешает ботам отправлять файлы только до 50 МБ, поэтому бот сам выбирает самое чёткое качество, которое влезает. Длинное видео не влезет даже так: тогда бот пришлёт ссылку на файл, она работает два часа.
+- Без рекламы и без «сначала подпишись на каналы спонсоров».
+
 ## Вопросы
 
 <details>
@@ -94,9 +110,9 @@
 </details>
 
 <details>
-<summary><b>Как работает версия для телефона?</b></summary>
+<summary><b>Как работают версия для телефона и бот в Telegram?</b></summary>
 <br>
-Айфон сам видео с YouTube скачать не может, поэтому телефон только передаёт ссылку, а качает сервер автора: на нём круглые сутки крутится та же Качалка (папка <a href="phone">phone</a>). Готовый файл возвращается на телефон — его можно сохранить в Фото или сразу отправить в Telegram. Файлы удаляются с сервера через два часа.
+Айфон сам видео с YouTube скачать не может, поэтому телефон только передаёт ссылку, а качает сервер автора: на нём круглые сутки крутится та же Качалка (папка <a href="phone">phone</a>). Готовый файл возвращается на телефон — его можно сохранить в Фото или сразу отправить в Telegram. Бот в Telegram работает на том же сервере и присылает файл прямо в чат. Файлы удаляются с сервера через два часа.
 </details>
 
 <details>
