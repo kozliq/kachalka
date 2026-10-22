@@ -21,6 +21,8 @@ import yt_dlp
 APP_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 GIF_PATH = APP_DIR / "animation.gif"
 CAT_PATH = APP_DIR / "cat.gif"          # котик в наушниках — пока качается звук
+VIBE_PATH = APP_DIR / "vibe.gif"        # кот в наушниках кивает — если трек дольше 2 минут
+LONG_TRACK = 120                        # секунд
 CONFIG = Path.home() / ".kachalka.json"
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
@@ -253,6 +255,8 @@ class Downloader(threading.Thread):
                 total = sum(sizes)
                 for p, s in zip(parts, sizes):
                     self.weights[p.get("format_id")] = s / total if total else 1 / len(parts)
+                if self.audio and (info.get("duration") or 0) > LONG_TRACK:
+                    self.send("vibe")
                 what = "звук" if self.audio else "видео"
                 self.send("stage", text=f"Качаю {what}: {info.get('title', what)[:60]}")
                 result = ydl.process_ie_result(info, download=True)
@@ -287,6 +291,7 @@ class App(ctk.CTk):
         self.last_path = None
         self.runner = self.load_gif(GIF_PATH)
         self.cat = self.load_gif(CAT_PATH)
+        self.vibe = self.load_gif(VIBE_PATH)
         self.frames, self.delays = self.runner
         self.frame_i = 0
         self.anim_job = None
@@ -502,7 +507,10 @@ class App(ctk.CTk):
         try:
             while True:
                 kind, data = self.events.get_nowait()
-                if kind == "stage":
+                if kind == "vibe" and self.vibe[0]:
+                    self.frames, self.delays = self.vibe
+                    self.frame_i = 0
+                elif kind == "stage":
                     self.stage_text = data["text"]
                     self.set_status(data["text"], TEXT)
                 elif kind == "progress":

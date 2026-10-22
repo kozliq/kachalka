@@ -19,6 +19,7 @@ args = [
     "--clean",
     f"--add-data=animation.gif{os.pathsep}.",
     f"--add-data=cat.gif{os.pathsep}.",
+    f"--add-data=vibe.gif{os.pathsep}.",
     "--collect-data=customtkinter",
     "--collect-submodules=yt_dlp",
     "--collect-all=imageio_ffmpeg",
