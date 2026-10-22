@@ -1,6 +1,5 @@
 """Рисует пиксельную гифку для длинных треков (дольше 2 минут) в режиме MP3:
-полосатый кот в чёрных наушниках и с патчем-компасом на левом плече
-кивает в такт в музыкальном магазине.
+полосатый кот в чёрных наушниках кивает в такт в музыкальном магазине.
 Морда кота берётся из фото и сжимается до пикселей-квадратиков с общей
 палитрой на все кадры, наушники дорисованы поверх чёткими пикселями.
 Кивок и покачивание — сдвиг картинки, наушники двигаются вместе с головой.
@@ -37,26 +36,6 @@ CUP_W, CUP_H = 14, 20           # чашка в квадратиках
 HP = (24, 22, 30)               # чёрный пластик
 HP_HI = (78, 72, 98)            # блик по краю
 HP_SHINE = (96, 116, 176)       # синеватый отблеск, как на фото
-# мини-патч в классике Стоника на левом плече кота (для зрителя — справа внизу):
-# чёрный щиток со скруглённым верхом, две пуговицы, зелёный компас
-PATCH_AT = (392, 366)
-PATCH_PX = 1
-PATCH = ["...kkkkkkk...",
-         ".kkkkkkkkkkk.",
-         "kbkkkkGkkkkbk",
-         "kkkkkkGkkkkkk",
-         "kkkgkkGkkgkkk",
-         "kkkkgkGkgkkkk",
-         "kkkkkgGgkkkkk",
-         "kGGGGGyGGGGGk",
-         "kkkkkgGgkkkkk",
-         "kkkkgkGkgkkkk",
-         "kkkgkkGkkgkkk",
-         "kkkkkkGkkkkkk",
-         "kkkkkkkkkkkkk",
-         ".kkkkkkkkkkk."]
-PATCH_COLORS = {"k": (14, 14, 16), "b": (78, 78, 86), "G": (58, 176, 86),
-                "g": (30, 104, 52), "y": (214, 196, 60)}
 
 
 def layers(src):
@@ -119,18 +98,6 @@ def draw_headphones(d, at):
             d.line([(x0 + 4, y0 + 3), (x0 + 4, y0 + 7)], fill=HP_SHINE)
 
 
-def draw_patch(d, at):
-    """Патч с компасом пиксель в пиксель по рисунку PATCH, двигается вместе с котом."""
-    x, y = at(*PATCH_AT)
-    x0 = round(x) - len(PATCH[0]) * PATCH_PX // 2
-    y0 = round(y) - len(PATCH) * PATCH_PX // 2
-    for j, row in enumerate(PATCH):
-        for i, ch in enumerate(row):
-            if ch in PATCH_COLORS:
-                px, py = x0 + i * PATCH_PX, y0 + j * PATCH_PX
-                d.rectangle([px, py, px + PATCH_PX - 1, py + PATCH_PX - 1], fill=PATCH_COLORS[ch])
-
-
 def make_frames(src_path):
     src = Image.open(src_path).convert("RGB")
     bg, fg, mask = layers(src)
@@ -150,7 +117,6 @@ def make_frames(src_path):
         img.paste(OUTLINE, mask=ring)
         d = ImageDraw.Draw(img)
         draw_headphones(d, at)
-        draw_patch(d, at)
         cups = [at(*c) for c in CUPS]
         for b in range(N // BEAT):
             t = ((f - b * BEAT) % N) / 30
