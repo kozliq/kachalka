@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>Качалка — статистика</title>
+<!-- Статистика Качалки для автора: kachalka-api.flownote.cc/admin.
+     Цифры отдаёт server.py (/api/admin) только с ключом (admin.key рядом со stats.json).
+     Первый раз открыть ссылку …/admin#k=<ключ> — ключ запомнится в браузере. -->
+<style>
+  :root { --bg: #fff; --fg: #0b0b0b; --dim: #555; --line: #d6d6d6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #000; --fg: #f0f0f0; --dim: #b8b8b8; --line: #333; } }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+         font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px;
+          padding-top: max(24px, env(safe-area-inset-top)); }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  h1 span { color: var(--dim); font-weight: 400; }
+  .meta { margin: 0; color: var(--dim); font-size: 15px; white-space: nowrap; }
+  button.link { font: inherit; color: var(--fg); background: none; border: 0; padding: 0; cursor: pointer;
+                text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 40px 0 28px; }
+  .top b { display: block; font-size: clamp(38px, 11vw, 68px); line-height: 1; font-weight: 700; letter-spacing: -0.03em; }
+  .top span { display: block; margin-top: 8px; font-size: 15px; color: var(--dim); line-height: 1.3; }
+  .now { margin: 0 0 8px; font-size: 15px; }
+  section { border-top: 1px solid var(--line); padding: 28px 0 8px; margin-top: 20px; }
+  h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+  .lead { margin: 0 0 16px; font-size: 18px; }
+  dl { display: grid; grid-template-columns: 112px 1fr; gap: 6px 16px; margin: 0; font-size: 15px; }
+  dt { color: var(--dim); }
+  dd { margin: 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 15px; }
+  th { font-weight: 400; color: var(--dim); font-size: 13px; text-align: right; padding: 0 0 6px 12px; }
+  td { text-align: right; padding: 5px 0 5px 12px; }
+  th:first-child, td:first-child { text-align: left; padding-left: 0; }
+  td.zero { color: var(--dim); }
+  .sub th { padding-top: 0; }
+  footer { margin-top: 40px; color: var(--dim); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  footer button.link { color: var(--dim); }
+  .login { margin-top: 48px; max-width: 460px; }
+  .login p { color: var(--dim); font-size: 15px; }
+  .login input { width: 100%; font: inherit; color: var(--fg); background: none; border: 0;
+                 border-bottom: 1px solid var(--fg); padding: 8px 0; outline: none; border-radius: 0; }
+  .login .row { display: flex; gap: 16px; align-items: center; margin-top: 8px; }
+  .err { color: var(--fg); font-size: 15px; }
+  @media (max-width: 420px) {
+    .top { gap: 10px; }
+    .top span { font-size: 13px; }
+    dl { grid-template-columns: 92px 1fr; }
+    th, td { padding-left: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Качалка <span>статистика</span></h1>
+    <p class="meta"><span id="at"></span><button class="link" id="reload" hidden>обновить</button></p>
+  </header>
+  <main id="main"></main>
+  <div class="login" id="login" hidden>
+    <h2>Нужен ключ</h2>
+    <p id="login-why">Открой ссылку с ключом — или вставь её сюда. Браузер запомнит, дальше будет открываться сразу.</p>
+    <input id="key" type="password" autocomplete="off" placeholder="ссылка или ключ">
+    <div class="row"><button class="link" id="go">войти</button></div>
+  </div>
+</div>
+<script>
+const STORE = 'kachalka-admin-key';
+const $ = id => document.getElementById(id);
+let key = '';
+try { key = localStorage.getItem(STORE) || ''; } catch {}
+
+function setKey(k) {
+  key = k.trim();
+  try { localStorage.setItem(STORE, key); } catch {}
+}
+// ссылка вида …/admin#k=<ключ>: запомнили ключ и убрали его из адресной строки
+const fromHash = location.hash.match(/k=([^&]+)/);
+if (fromHash) { setKey(decodeURIComponent(fromHash[1])); history.replaceState(null, '', location.pathname); }
+
+const n = x => (x || 0).toLocaleString('ru-RU');
+function pl(x, one, few, many) {
+  const a = Math.abs(x) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b === 1) return one;
+  if (b > 1 && b < 5) return few;
+  return many;
+}
+const people = x => `${n(x)} ${pl(x, 'человек', 'человека', 'человек')}`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const SITES = {
+  'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'music.youtube.com': 'YouTube Music',
+  'tiktok.com': 'TikTok', 'instagram.com': 'Instagram', 'vk.com': 'VK', 'vkvideo.ru': 'VK Видео',
+  'x.com': 'X', 'twitter.com': 'X', 'pinterest.com': 'Pinterest', 'ru.pinterest.com': 'Pinterest',
+  'pin.it': 'Pinterest', 'rutube.ru': 'Rutube', 'twitch.tv': 'Twitch', 'soundcloud.com': 'SoundCloud',
+  'reddit.com': 'Reddit', 'facebook.com': 'Facebook', 'dzen.ru': 'Дзен', 'ok.ru': 'OK', 'likee.video': 'Likee',
+};
+function sites(obj) {
+  const merged = {};
+  for (const [host, c] of Object.entries(obj || {})) {
+    const name = SITES[host] || host;
+    merged[name] = (merged[name] || 0) + c;
+  }
+  const list = Object.entries(merged).sort((a, b) => b[1] - a[1]);
+  return list.length ? list.map(([s, c]) => `${esc(s)} ${n(c)}`).join(', ') : '—';
+}
+
+function dayName(d, today) {
+  const t = new Date(today + 'T00:00:00'), x = new Date(d + 'T00:00:00');
+  const diff = Math.round((t - x) / 864e5);
+  if (diff === 0) return 'сегодня';
+  if (diff === 1) return 'вчера';
+  return x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', weekday: 'short' }).replace('.', '');
+}
+
+function uptime(s) {
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} мин`;
+  if (s < 86400) return `${Math.round(s / 3600)} ч`;
+  return `${Math.round(s / 86400)} дн`;
+}
+
+function part(title, p) {
+  return `<section>
+    <h2>${title}</h2>
+    <p class="lead">${people(p.users)} · ${n(p.videos)} видео</p>
+    <dl>
+      <dt>сегодня</dt><dd>${people(p.today.users)}, ${n(p.today.videos)} видео</dd>
+      <dt>за 7 дней</dt><dd>${people(p.week.users)}, ${n(p.week.videos)} видео</dd>
+      <dt>откуда</dt><dd>${sites(p.sites)}</dd>
+    </dl>
+  </section>`;
+}
+
+const cell = x => `<td${x ? '' : ' class="zero"'}>${x ? n(x) : '0'}</td>`;
+
+function render(d) {
+  const pr = d.program;
+  const prog = pr ? `<section>
+      <h2>Программа для Windows и Mac</h2>
+      <p class="lead">${n(pr.total)} ${pl(pr.total, 'раз', 'раза', 'раз')} скачали</p>
+      <dl>
+        <dt>Windows</dt><dd>${n(pr.win)}</dd>
+        <dt>Mac</dt><dd>${n(pr.mac)}</dd>
+        ${pr.rickrolled != null ? `<dt>зарикроллили</dt><dd>${people(pr.rickrolled)}</dd>` : ''}
+      </dl>
+      <table>
+        <tr><th>версия</th><th>вышла</th><th>Windows</th><th>Mac</th></tr>
+        ${pr.releases.map(r => `<tr><td>${esc(r.version)}</td><td>${r.date ? new Date(r.date + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '') : ''}</td>${cell(r.win)}${cell(r.mac)}</tr>`).join('')}
+      </table>
+      <p class="now" style="margin-top:16px;color:var(--dim)">Сколько человек запускают программу — неизвестно: она ничего не отправляет.</p>
+    </section>`
+    : `<section><h2>Программа для Windows и Mac</h2><p class="lead">GitHub не ответил — цифры будут при следующем обновлении.</p></section>`;
+
+  const days = d.days.length ? `<section>
+      <h2>По дням</h2>
+      <table>
+        <tr><th></th><th colspan="2" style="text-align:center">телефон</th><th colspan="2" style="text-align:center">бот</th></tr>
+        <tr class="sub"><th></th><th>видео</th><th>новых</th><th>видео</th><th>новых</th></tr>
+        ${d.days.map(x => `<tr><td>${dayName(x.day, d.today)}</td>${cell(x.phone)}${cell(x.phone_new)}${cell(x.bot)}${cell(x.bot_new)}</tr>`).join('')}
+      </table>
+    </section>` : '';
+
+  $('main').innerHTML = `
+    <div class="top">
+      <div><b>${pr ? n(pr.total) : '—'}</b><span>${pr ? pl(pr.total, 'раз', 'раза', 'раз') : 'раз'} скачали программу</span></div>
+      <div><b>${n(d.phone.users)}</b><span>${pl(d.phone.users, 'человек', 'человека', 'человек')} на телефоне</span></div>
+      <div><b>${n(d.bot.users)}</b><span>${pl(d.bot.users, 'человек', 'человека', 'человек')} в Telegram-боте</span></div>
+    </div>
+    <p class="now">${d.busy ? `● Сейчас качается ${n(d.busy)} видео` : 'Сейчас никто не качает'}</p>
+    ${prog}
+    ${part('Телефон', d.phone)}
+    ${part('Telegram-бот', d.bot)}
+    ${days}
+    <footer>
+      <span>сервер работает ${uptime(d.up)} · yt-dlp ${esc(d.yt_dlp)}</span>
+      <button class="link" id="share">ссылка для телефона</button>
+    </footer>`;
+  $('share').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(`${location.origin}${location.pathname}#k=${encodeURIComponent(key)}`);
+      $('share').textContent = 'скопировано — открой на телефоне';
+    } catch { $('share').textContent = 'не получилось скопировать'; }
+    setTimeout(() => { if ($('share')) $('share').textContent = 'ссылка для телефона'; }, 4000);
+  };
+}
+
+function showLogin(why) {
+  $('main').innerHTML = '';
+  $('login').hidden = false;
+  $('reload').hidden = true;
+  $('at').textContent = '';
+  if (why) $('login-why').textContent = why;
+}
+
+let loading = false;
+async function load() {
+  if (!key) return showLogin();
+  if (loading) return;
+  loading = true;
+  $('at').textContent = 'обновляю…';
+  try {
+    const r = await fetch('/api/admin', { headers: { Authorization: 'Bearer ' + key }, cache: 'no-store' });
+    if (r.status === 403) return showLogin('Ключ не подошёл. Открой ссылку с ключом ещё раз или вставь её сюда.');
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    $('login').hidden = true;
+    render(d);
+    $('at').textContent = `в ${d.time} · `;
+    $('reload').hidden = false;
+  } catch {
+    $('at').textContent = 'сервер не ответил · ';
+    $('reload').hidden = false;
+  } finally {
+    loading = false;
+  }
+}
+
+$('reload').onclick = load;
+$('go').onclick = () => {
+  const v = $('key').value.trim();
+  const m = v.match(/k=([^&\s]+)/);
+  if (!v) return;
+  setKey(m ? decodeURIComponent(m[1]) : v);
+  $('key').value = '';
+  load();
+};
+$('key').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
+setInterval(() => { if (document.visibilityState === 'visible') load(); }, 60000);
+load();
+</script>
+</body>
+</html>

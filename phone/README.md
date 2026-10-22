@@ -14,15 +14,30 @@
 
 Сервер работает круглые сутки. Файлы удаляются через два часа (или раньше, если на диске мало места).
 
+## Бот в Telegram
+
+Тот же сервер качает и для Telegram-бота (`phone/bot.py`). Человек кидает боту ссылку, бот отдаёт её `server.py` на этом же компьютере, раз в несколько секунд обновляет сообщение с прогрессом и присылает готовое видео прямо в чат. Под видео кнопка «Только звук — MP3»; если в сообщении со ссылкой есть слово «mp3» или «звук», бот сразу пришлёт MP3.
+
+Telegram разрешает ботам отправлять файлы только до 50 МБ, поэтому для бота сервер сам подбирает качество: самое чёткое из 1080p, 720p, 480p и 360p, которое влезает в 47 МБ (перебор идёт без лишних запросов к сайту). Если не влезло даже так — бот присылает ссылку на файл, она работает два часа.
+
+- Бот опрашивает Telegram сам (long polling), поэтому ему не нужен ни туннель, ни открытый порт.
+- В группах бот качает только ссылки с видеосайтов и молчит об ошибках, чтобы не мусорить.
+- Лимиты: три ссылки разом, дальше одна раз в 20 секунд; 25 загрузок в час, 100 и 3 ГБ в сутки на человека; в очереди чата до трёх ссылок (качаются по одной), во всём боте до 15. Больше 20 сообщений за минуту — бот молчит на человека 10 минут, потом час, потом сутки.
+- Статистика для автора — страница `/admin` (ключ в `admin.key` рядом со `stats.json`).
+- Статистика бота — в том же `stats.json`, но отдельным разделом `telegram`, на сайт не отправляется.
+- Пока качается, в сообщении бежит челик с папкой (для MP3 — котик в наушниках), как в программе: `bot-video.mp4` и `bot-audio.mp4` — это `animation.gif` и `cat.gif`, увеличенные в два раза. Аватарка — `bot-avatar.jpg`, та же «К», что у программы (делает `make_app_icon.py`), ставится один раз командой `bot.py avatar`.
+- Токен — файл `bot.token` рядом со статистикой (`/var/lib/kachalka-phone/bot.token`, права 600). Без него служба не стартует.
+
 ## Что где
 
 | Что | Где |
 |---|---|
 | Сервер | `phone/server.py` (слушает только `127.0.0.1:8977`), на сервере — `/opt/kachalka-phone/` |
 | Запуск + обновление yt-dlp | `phone/run.sh` |
-| Автозапуск | systemd: `kachalka-phone.service` (сервер, отдельный пользователь `kachalka`) и `kachalka-tunnel.service` (туннель) |
+| Telegram-бот | `phone/bot.py`, на сервере — `/opt/kachalka-phone/bot.py` |
+| Автозапуск | systemd: `kachalka-phone.service` (сервер, отдельный пользователь `kachalka`), `kachalka-tunnel.service` (туннель) и `kachalka-bot.service` (бот) |
 | Туннель | `/etc/cloudflared/kachalka.yml` → `kachalka-api.flownote.cc` |
-| Логи | `journalctl -u kachalka-phone` и `journalctl -u kachalka-tunnel` |
+| Логи | `journalctl -u kachalka-phone`, `journalctl -u kachalka-tunnel`, `journalctl -u kachalka-bot` |
 | Статистика | `/var/lib/kachalka-phone/stats.json` (видео по дням и сайтам, число разных телефонов) |
 | Страница-приложение | `site/app/` — папка сайта, в репозиторий не входит (выкладка: `npx wrangler deploy` в `site/`) |
 | Счётчики на сайте и в README | `site/worker.js` → `/api/downloads`, `/api/badge/phone` (ключ отправки — `push.key` рядом со статистикой и секрет `PHONE_KEY` в Cloudflare) |
@@ -41,6 +56,7 @@
 ```bash
 systemctl restart kachalka-phone       # перезапустить сервер (и обновить yt-dlp)
 systemctl restart kachalka-tunnel      # перезапустить туннель
+systemctl restart kachalka-bot         # перезапустить бота
 journalctl -u kachalka-phone -n 50     # что пишет сервер
 curl -s https://kachalka-api.flownote.cc/api/ping   # жив ли сервер снаружи
 ```
@@ -49,4 +65,4 @@ curl -s https://kachalka-api.flownote.cc/api/ping   # жив ли сервер �
 
 ## Свой сервер
 
-Хочешь поднять у себя: `python3 -m venv phone/.venv && phone/.venv/bin/pip install "yt-dlp[default,curl-cffi]"`, нужен `ffmpeg`. Запуск — `phone/run.sh`. Наружу — свой Cloudflare Tunnel. Страница — [kachalka.flownote.cc/app](https://kachalka.flownote.cc/app/), её код открыт прямо в браузере; адрес сервера в ней — константа `API`.
+Хочешь поднять у себя: `python3 -m venv phone/.venv && phone/.venv/bin/pip install "yt-dlp[default,curl-cffi]"`, нужен `ffmpeg`. Запуск — `phone/run.sh`. Свой бот: создай его у [@BotFather](https://t.me/BotFather), положи токен в `bot.token` (или в переменную `KACHALKA_BOT_TOKEN`) и запусти `phone/.venv/bin/python phone/bot.py` рядом с работающим сервером. Наружу — свой Cloudflare Tunnel. Страница — [kachalka.flownote.cc/app](https://kachalka.flownote.cc/app/), её код открыт прямо в браузере; адрес сервера в ней — константа `API`.

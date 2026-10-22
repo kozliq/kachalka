@@ -1,4 +1,5 @@
 """Иконки телефонной версии: та же «К», но фон на весь квадрат (iOS и Android сами скругляют углы).
+Заодно аватарка бота phone/bot-avatar.jpg (Telegram сам обрезает её кругом).
 
 Запуск: python phone/make_app_icon.py site/app   (нужен Pillow и шрифт SF с macOS)
 """
@@ -26,3 +27,4 @@ full.resize((180, 180), Image.LANCZOS).save(out / "apple-touch-icon.png")
 full.resize((192, 192), Image.LANCZOS).save(out / "icon-192.png")
 full.resize((512, 512), Image.LANCZOS).save(out / "icon-512.png")
 safe.resize((512, 512), Image.LANCZOS).save(out / "icon-maskable.png")
+make(1.15).resize((640, 640), Image.LANCZOS).save(Path(__file__).parent / "bot-avatar.jpg", quality=95)
