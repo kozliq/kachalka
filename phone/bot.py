@@ -89,8 +89,21 @@ ABOUT = (
     "Кидай ссылку — пришлю видео или MP3 прямо в чат.\n\n"
     "YouTube, TikTok, Instagram, VK, X и ещё сотни сайтов. "
     "Без рекламы, водяных знаков и регистрации.\n\n"
-    "Открытый код: github.com/kozliq/kachalka"
+    "Открытый код: github.com/kozliq/kachalka\n\n"
+    "Пригодился бот — можно кинуть звёздочку: /donate"
 )
+# донат звёздами Telegram: только по команде, бот сам никогда не просит
+STARS = (10, 50, 100, 500)
+DONATE = (
+    "Качалка бесплатная и такой останется: без рекламы, подписок и платных функций.\n\n"
+    "Если бот пригодился и хочется сказать спасибо — кинь звёздочку. "
+    "Это добровольно и ни на что не влияет, всё работает одинаково для всех."
+)
+PAYSUPPORT = (
+    "Звёзды здесь — просто спасибо, за них ничего не покупается и не открывается. "
+    "Отправил по ошибке или передумал — нажми кнопку, верну последний донат."
+)
+THANKS = DATA / "thanks.jsonl"      # кто и сколько звёзд кинул (для возврата)
 
 bot_name = ""               # имя бота без @, узнаём при запуске
 lock = threading.Lock()
@@ -98,6 +111,7 @@ lines = {}                  # чат → очередь его ссылок (п�
 people = {}                 # id в Telegram → Person
 job_urls = {}               # id загрузки → ссылка (для кнопки «Только звук»)
 anim_ids = {}               # картинка → её file_id в Telegram, чтобы не загружать каждый раз
+star_links = {}             # сколько звёзд → ссылка на оплату (делаем один раз)
 
 
 class TgError(Exception):
@@ -490,11 +504,67 @@ def give_link(chat, status, reply_id, job):
            {"text": f"Скачать — {size} МБ", "url": f"{PUBLIC}/api/jobs/{job['id']}/file"}]]})
 
 
+def donate(chat):
+    """Кнопки «⭐ 10 / 50 / 100 / 500». Каждая сразу открывает оплату звёздами."""
+    for n in STARS:
+        if n not in star_links:
+            star_links[n] = tg("createInvoiceLink", title="Спасибо Качалке", payload=f"thanks:{n}",
+                               description="Добровольное спасибо, ничего не покупается. "
+                                           "Передумал — /paysupport, верну.",
+                               currency="XTR", prices=[{"label": "Спасибо", "amount": n}])
+    tg("sendMessage", chat_id=chat, text=DONATE, reply_markup={"inline_keyboard": [[
+        {"text": f"⭐ {n}", "url": star_links[n]} for n in STARS]]})
+
+
+def thanks_log():
+    try:
+        return [json.loads(line) for line in THANKS.read_text("utf-8").splitlines() if line.strip()]
+    except (OSError, ValueError):
+        return []
+
+
+def on_paid(msg):
+    pay, user = msg["successful_payment"], msg["from"]["id"]
+    with lock:
+        with THANKS.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"user": user, "stars": pay["total_amount"], "time": int(time.time()),
+                                "charge": pay["telegram_payment_charge_id"]}) + "\n")
+    print(f"Донат: {pay['total_amount']} ⭐", flush=True)
+    tg("sendMessage", chat_id=msg["chat"]["id"], text="Спасибо! ❤️ Звёздочка долетела, автору приятно.")
+
+
+def refund(q):
+    user = q["from"]["id"]
+    with lock:
+        log = thanks_log()
+        last = next((t for t in reversed(log) if t["user"] == user and not t.get("refunded")), None)
+        if last:
+            try:
+                tg("refundStarPayment", user_id=user, telegram_payment_charge_id=last["charge"])
+            except TgError:
+                last = None
+            else:
+                last["refunded"] = True
+                THANKS.write_text("".join(json.dumps(t) + "\n" for t in log), "utf-8")
+    quiet("answerCallbackQuery", callback_query_id=q["id"], show_alert=True,
+          text=f"Вернул {last['stars']} ⭐" if last else "Возвращать нечего — донатов от тебя не нашёл.")
+
+
 def on_message(msg):
     chat, private = msg["chat"]["id"], msg["chat"].get("type") == "private"
     user = (msg.get("from") or {}).get("id", chat)
+    if msg.get("successful_payment"):
+        return on_paid(msg)
     text, urls = links_in(msg)
     cmd, _, to = (text.split() or [""])[0].lower().partition("@")
+    if cmd in ("/donate", "/paysupport"):
+        if (private or to == bot_name.lower()) and fresh(user, cmd, 5):
+            if cmd == "/donate":
+                donate(chat)
+            else:
+                tg("sendMessage", chat_id=chat, text=PAYSUPPORT, reply_markup={"inline_keyboard": [[
+                    {"text": "Вернуть звёзды", "callback_data": "refund:"}]]})
+        return
     if cmd in ("/start", "/help"):
         if (private or to == bot_name.lower()) and fresh(user, "start", 30):
             try:
@@ -523,6 +593,8 @@ def on_message(msg):
 def on_button(q):
     msg = q.get("message") or {}
     kind, _, job_id = (q.get("data") or "").partition(":")
+    if kind == "refund":
+        return refund(q)
     url = job_urls.get(job_id)
     if not url:     # бот перезапускался — ссылку берём из сообщения, на которое ответили видео
         _, urls = links_in(msg.get("reply_to_message") or {})
@@ -541,6 +613,8 @@ def sender(update):
     (болтовня в группе), такой не считаем и не разбираем."""
     if "callback_query" in update:
         return update["callback_query"]["from"]["id"]
+    if "pre_checkout_query" in update:
+        return update["pre_checkout_query"]["from"]["id"]
     msg = update.get("message")
     if not msg:
         return None
@@ -567,6 +641,8 @@ def handle(update, sec=0):
             on_message(update["message"])
         elif "callback_query" in update:
             on_button(update["callback_query"])
+        elif "pre_checkout_query" in update:     # звёзды: Telegram ждёт «да» не дольше 10 секунд
+            tg("answerPreCheckoutQuery", pre_checkout_query_id=update["pre_checkout_query"]["id"], ok=True)
     except Exception as e:
         print("update:", type(e).__name__, e, flush=True)
     finally:
@@ -579,7 +655,8 @@ def setup():
 
     def texts():    # Telegram отвечает на это медленно (бывает 40 с) — не держим из-за них приём сообщений
         for method, params in (
-                ("setMyCommands", {"commands": [{"command": "start", "description": "Как пользоваться"}]}),
+                ("setMyCommands", {"commands": [{"command": "start", "description": "Как пользоваться"},
+                                              {"command": "donate", "description": "Сказать спасибо звёздочкой"}]}),
                 ("setMyShortDescription", {"short_description": SHORT_ABOUT}),
                 ("setMyDescription", {"description": ABOUT})):
             quiet(method, **params)
@@ -624,7 +701,7 @@ def main():
 
 def tg_updates(offset):
     """Долгий опрос: Telegram держит запрос до 50 секунд, пока не появится сообщение."""
-    body = json.dumps({"offset": offset, "timeout": 50, "allowed_updates": ["message", "callback_query"]})
+    body = json.dumps({"offset": offset, "timeout": 50, "allowed_updates": ["message", "callback_query", "pre_checkout_query"]})
     req = urllib.request.Request(f"{TG_API}/bot{TOKEN}/getUpdates", data=body.encode(),
                                  headers={"Content-Type": "application/json"})
     try:
