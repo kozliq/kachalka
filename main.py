@@ -10,7 +10,6 @@
 import json
 import os
 import queue
-import random
 import shutil
 import subprocess
 import sys
@@ -30,7 +29,6 @@ VIBE_PATH = APP_DIR / "vibe.gif"        # кот в наушниках кива�
 RICK_PATH = APP_DIR / "rick.gif"        # Рик танцует — тебя зарикроллили
 LONG_TRACK = 120                        # секунд
 RICK_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-RICK_CHANCE = 0.1                       # каждый десятый при первом скачивании
 RICK_COUNT = "https://kachalka.flownote.cc/api/rickroll"   # счётчик зарикролленных, без личных данных
 CONFIG = Path.home() / ".kachalka.json"
 IS_WIN = sys.platform == "win32"
@@ -547,12 +545,11 @@ class App(ctk.CTk):
         self.worker.start()
 
     def roll_rickroll(self):
-        """Русская рулетка: крутится один раз — при первом скачивании после установки."""
-        if "rickroll" in load_config():
+        """Первое скачивание — Рик, у всех. Кому в рулетке 1.3.0 не выпало — получит сейчас."""
+        if load_config().get("rickroll"):
             return False
-        won = random.random() < RICK_CHANCE
-        save_config(rickroll=won)
-        return won
+        save_config(rickroll=True)
+        return True
 
     def set_status(self, text, color=TEXT_2):
         self.status.configure(text=text, text_color=color)
