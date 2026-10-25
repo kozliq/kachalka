@@ -167,6 +167,8 @@ def friendly_error(raw):
     m = raw.lower()
     if any(s in m for s in NET_ERRORS):
         return "Нет связи с сайтом — похоже, он заблокирован у провайдера. " + VPN_HINT
+    if "confirm your age" in m or "age-restricted" in m or "inappropriate for some users" in m:
+        return "Это видео 18+: YouTube отдаёт его только после входа в аккаунт — Качалке его не скачать."
     if "sign in to confirm" in m or "not a bot" in m:
         return "YouTube просит подтвердить, что ты не робот. Смени сервер VPN или попробуй позже."
     if "unsupported url" in m:
