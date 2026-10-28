@@ -14,6 +14,8 @@ import shutil
 import subprocess
 import sys
 import threading
+import urllib.parse
+import webbrowser
 from pathlib import Path
 from tkinter import filedialog
 
@@ -27,8 +29,11 @@ GIF_PATH = APP_DIR / "animation.gif"
 CAT_PATH = APP_DIR / "cat.gif"          # котик в наушниках — пока качается звук
 VIBE_PATH = APP_DIR / "vibe.gif"        # кот в наушниках кивает — если трек дольше 2 минут
 RICK_PATH = APP_DIR / "rick.gif"        # Рик танцует — тебя зарикроллили
+DENO_PATH = APP_DIR / ("deno.exe" if sys.platform == "win32" else "deno")   # для задачек YouTube
 LONG_TRACK = 120                        # секунд
 RICK_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+FEEDBACK_MAIL = "hello@flownote.cc"
+FEEDBACK_BOT = "https://t.me/kachalka_videobot?start=feedback"    # бот сам спросит, что не так
 RICK_COUNT = "https://kachalka.flownote.cc/api/rickroll"   # счётчик зарикролленных, без личных данных
 CONFIG = Path.home() / ".kachalka.json"
 IS_WIN = sys.platform == "win32"
@@ -284,6 +289,8 @@ class Downloader(threading.Thread):
                 {"key": "FFmpegMetadata", "add_metadata": True},
                 {"key": "EmbedThumbnail", "already_have_thumbnail": False},
             ]
+        if DENO_PATH.exists():  # в собранной программе deno свой, иначе ищется в системе
+            opts["js_runtimes"] = {"deno": {"path": str(DENO_PATH)}}
         ffmpeg = find_ffmpeg()
         if ffmpeg:
             opts["ffmpeg_location"] = ffmpeg
@@ -339,6 +346,7 @@ class App(ctk.CTk):
         self.target = 0.0
         self.shown = 0.0
         self.last_path = None
+        self.last_error = ""
         self.runner = self.load_gif(GIF_PATH)
         self.cat = self.load_gif(CAT_PATH)
         self.vibe = self.load_gif(VIBE_PATH)
@@ -437,6 +445,25 @@ class App(ctk.CTk):
                       border_width=1, border_color=BORDER, text_color=TEXT,
                       font=ctk.CTkFont(size=13),
                       command=self.choose_folder).pack(side="right", padx=(0, 8))
+
+        # обратная связь: два текстовых линка, без рамок
+        talk = ctk.CTkFrame(wrap, fg_color=BG)
+        talk.pack(fill="x", pady=(14, 0))
+        ctk.CTkLabel(talk, text="Что-то не так или есть идея?", text_color=TEXT_2,
+                     font=ctk.CTkFont(size=13)).pack(side="left")
+        for text, cmd in ((FEEDBACK_MAIL, self.write_mail), ("Написать в Telegram", self.write_bot)):
+            link = ctk.CTkLabel(talk, text=text, text_color=TEXT, cursor="hand2",
+                                font=ctk.CTkFont(size=13, underline=True))
+            link.pack(side="left", padx=(10, 0))
+            link.bind("<Button-1>", lambda e, c=cmd: c())
+
+    def write_mail(self):
+        body = f"\n\n\nОшибка в Качалке: {self.last_error}" if self.last_error else ""
+        webbrowser.open(f"mailto:{FEEDBACK_MAIL}?" + urllib.parse.urlencode(
+            {"subject": "Качалка", "body": body}, quote_via=urllib.parse.quote))
+
+    def write_bot(self):
+        webbrowser.open(FEEDBACK_BOT)
 
     def load_gif(self, path):
         if not path.exists():
@@ -598,6 +625,7 @@ class App(ctk.CTk):
                     self.target = self.shown = 0.0
                     self.bar.set(0)
                     self.set_status(data["text"], ERR)
+                    self.last_error = data["text"]
                     self.hide_gif("Не получилось скачать.\nЧто случилось — написано ниже")
                     self.finish()
         except queue.Empty:
